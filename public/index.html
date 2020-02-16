@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <form id="form" method="POST">
+      Room ID: <input type="text" autofocus id="roomid" name="roomid" /><br />
+      <input type="submit" />
+    </form>
+    <script type="text/javascript">
+      window.onload = () => {
+        document.getElementById('form').onsubmit = () => {
+          const roomId = document.getElementById('roomid').value.trim();
+          if (roomId === null || roomId === '') {
+            alert('roomId cannot be empty');
+            return false;
+          }
+          document.getElementById('form').action = `/${roomId}`;
+        };
+      };
+    </script>
+  </body>
+</html>

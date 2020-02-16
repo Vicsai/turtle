@@ -1,0 +1,6 @@
+cert.pem
+key.pem
+.prettierrc
+node_modules/
+.eslintrc.json
+.travis.yml
