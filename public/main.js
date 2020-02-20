@@ -30,6 +30,7 @@ async function startScreenShare(id) {
 }
 
 // SOCKET
+// initialize a new user when they join a room
 socket.on('initiate', async ({ host, id }) => {
   connections[host] = new RTCPeerConnection(iceServers);
   connections[host].oniceconnectionstatechange = () => {
@@ -48,7 +49,8 @@ socket.on('initiate', async ({ host, id }) => {
   };
   socket.emit('newUserReady', id);
 });
-socket.on('r', async id => {
+// create a new peer connection for host when a user joins the room
+socket.on('newHostPeer', async id => {
   const peer = new RTCPeerConnection(iceServers);
   connections[id] = peer;
   await startScreenShare(id);
@@ -60,23 +62,17 @@ socket.on('r', async id => {
     socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
   };
   await peer.setLocalDescription(await peer.createOffer());
-  socket.emit('message', { description: peer.localDescription, to: id });
 });
-socket.on('closeConnection', async id => {
-  if (connections[id]) {
-    connections[id].close();
-    console.log('connection closed');
-  } else console.log('invalid connection close');
-});
+
 socket.on('message', async ({ description, candidate, id }) => {
+  if (id === undefined) return;
   const peer = connections[id];
   if (description) {
     await peer.setRemoteDescription(description);
     if (description.type === 'offer') {
-      console.log(peer.remoteDescription);
       await peer.setLocalDescription(await peer.createAnswer());
       socket.emit('message', { description: peer.localDescription, to: id });
-    } else if (description.type === 'answer') console.log(peer.remoteDescription);
+    } else if (description.type === 'answer') console.log('answer recieved');
     else console.log('unexpected description type');
   }
   if (candidate) {
@@ -84,10 +80,9 @@ socket.on('message', async ({ description, candidate, id }) => {
     await peer.addIceCandidate(candidate);
   }
 });
-
-// socket.on('initiate', async () => {
-//   await startScreenShare();
-//   initiator = true;
-//   console.log('initiate host');
-//   await peer.setLocalDescription(await peer.createOffer());
-// });
+socket.on('closeConnection', async id => {
+  if (connections[id]) {
+    connections[id].close();
+    console.log('connection closed');
+  } else console.log('invalid connection close');
+});

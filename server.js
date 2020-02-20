@@ -32,7 +32,6 @@ function joinRoom(socket) {
   if (Object.prototype.hasOwnProperty.call(rooms, socket.room)) {
     rooms[socket.room].push(socket.id);
     const host = rooms[socket.room][0];
-    console.log(host);
     socket.host = host;
     socket.emit('initiate', { host, id: socket.id });
   } else {
@@ -81,11 +80,7 @@ io.sockets.on('connection', socket => {
     }
   });
   socket.on('newUserReady', id => {
-    socket.to(socket.host).emit('r', id);
-  });
-  socket.on('renegotiate', data => {
-    console.log('renegotiating...');
-    socket.broadcast.emit('newSDP', data.sdp);
+    socket.to(socket.host).emit('newHostPeer', id);
   });
 });
 const server = http.listen(8000, () => {
