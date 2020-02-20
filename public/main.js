@@ -1,7 +1,8 @@
-const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun.service.mozilla.com' }];
-const peer = new RTCPeerConnection(iceServers);
+const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+// const peer = new RTCPeerConnection(iceServers);
 const socket = io.connect();
 
+const connections = {};
 let inboundStream = null;
 let initiator = false;
 
@@ -13,49 +14,75 @@ $(document).ready(() => {
     $('#prompt').hide();
     $('#screenshare').show();
   });
-
-  peer.oniceconnectionstatechange = () => {
-    console.log(`peer ice state ${peer.iceConnectionState}`);
-  };
-  peer.ontrack = e => {
-    if (initiator) return;
-    const video = document.getElementById('screen');
-    if (!inboundStream) {
-      inboundStream = new MediaStream([e.track]);
-    }
-    peer.addTrack(e.track, inboundStream);
-    video.srcObject = inboundStream;
-    video.play();
-  };
 });
 
 // FUNCTION
-async function startScreenShare() {
-  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+async function startScreenShare(id) {
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
   const tracks = stream.getTracks();
   for (let i = 0; i < tracks.length; i++) {
-    peer.addTrack(tracks[i], stream);
+    connections[id].addTrack(tracks[i], stream);
   }
+  console.log('finished adding tracks');
   const video = document.getElementById('screen');
   video.srcObject = stream;
   video.play();
 }
 
 // SOCKET
-socket.on('initiator', async id => {
-  initiator = true;
-  await startScreenShare();
-  await peer.setLocalDescription(await peer.createOffer());
-  socket.emit('message', { description: peer.localDescription, to: id });
+// initialize a new user when they join a room
+socket.on('initiate', async ({ host, id }) => {
+  connections[host] = new RTCPeerConnection(iceServers);
+  connections[host].oniceconnectionstatechange = () => {
+    console.log(`peer ice state ${connections[host].iceConnectionState}`);
+  };
+  connections[host].ontrack = e => {
+    if (initiator) return;
+    const video = document.getElementById('screen');
+    if (!inboundStream) {
+      inboundStream = new MediaStream([e.track]);
+    } else connections[host].addTrack(e.track, inboundStream);
+    video.srcObject = inboundStream;
+    e.track.onunmute = () => {
+      video.play();
+    };
+  };
+  socket.emit('newUserReady', id);
 });
-socket.on('message', async data => {
-  if (data.description) {
-    await peer.setRemoteDescription(data.description);
-    if (data.description.type === 'offer') {
+// create a new peer connection for host when a user joins the room
+socket.on('newHostPeer', async id => {
+  const peer = new RTCPeerConnection(iceServers);
+  connections[id] = peer;
+  await startScreenShare(id);
+  initiator = true;
+  peer.oniceconnectionstatechange = () => {
+    console.log(`peer ice state ${peer.iceConnectionState}`);
+  };
+  peer.onicecandidate = e => {
+    socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
+  };
+  await peer.setLocalDescription(await peer.createOffer());
+});
+
+socket.on('message', async ({ description, candidate, id }) => {
+  if (id === undefined) return;
+  const peer = connections[id];
+  if (description) {
+    await peer.setRemoteDescription(description);
+    if (description.type === 'offer') {
       await peer.setLocalDescription(await peer.createAnswer());
-      socket.emit('message', { description: peer.localDescription, to: data.socket });
-    } else if (data.description.type === 'answer') {
-    } else console.log('unexpected description type');
-  } else if (data.candidate) await peer.addIceCandidate(data.candidate);
-  else console.log('unexpected message type');
+      socket.emit('message', { description: peer.localDescription, to: id });
+    } else if (description.type === 'answer') console.log('answer recieved');
+    else console.log('unexpected description type');
+  }
+  if (candidate) {
+    console.log('ice candidate added');
+    await peer.addIceCandidate(candidate);
+  }
+});
+socket.on('closeConnection', async id => {
+  if (connections[id]) {
+    connections[id].close();
+    console.log('connection closed');
+  } else console.log('invalid connection close');
 });
