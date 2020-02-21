@@ -27,7 +27,7 @@ app.post('/:roomid', (req, res) => {
   room = req.params.roomid;
   res.sendFile(`${__dirname}/public/screenshare.html`);
 });
-const server = app.listen(port, () => {
+const server = http.listen(port, () => {
   console.log(`Listening on ${port}`);
 });
 
