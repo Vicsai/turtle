@@ -14,6 +14,7 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
+const port = process.env.PORT || 8000;
 const rooms = {};
 let room;
 
@@ -25,6 +26,9 @@ app.get('/favicon.ico', (req, res) => res.status(204));
 app.post('/:roomid', (req, res) => {
   room = req.params.roomid;
   res.sendFile(`${__dirname}/public/screenshare.html`);
+});
+const server = app.listen(port, () => {
+  console.log(`Listening on ${port}`);
 });
 
 // FUNCTIONS
@@ -82,9 +86,6 @@ io.sockets.on('connection', socket => {
   socket.on('newUserReady', id => {
     socket.to(socket.host).emit('newHostPeer', id);
   });
-});
-const server = http.listen(8000, () => {
-  console.log('start server on 8000');
 });
 process.on('SIGTERM', () => {
   console.log('shutting down server');
