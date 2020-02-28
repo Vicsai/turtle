@@ -17,14 +17,17 @@ const io = require('socket.io')(http);
 const port = process.env.PORT || 8000;
 const rooms = {};
 let room;
+let username;
 
 app.use(express.static(`${__dirname}/public`));
+app.use(express.urlencoded());
 app.get('/', (req, res) => {
   res.sendFile(`${__dirname}/public/index.html`);
 });
 app.get('/favicon.ico', (req, res) => res.status(204));
 app.post('/:roomid', (req, res) => {
   room = req.params.roomid;
+  username = req.body.username;
   res.sendFile(`${__dirname}/public/screenshare.html`);
 });
 const server = http.listen(port, () => {
@@ -41,7 +44,6 @@ function joinRoom(socket) {
   } else {
     console.log('room created');
     rooms[socket.room] = [socket.id];
-    // socket.emit('initiate');
   }
   console.log(`${socket.username} has joined`);
 }
@@ -55,7 +57,7 @@ function leaveRoom(socket) {
 
 // SOCKETS
 io.sockets.on('connection', socket => {
-  socket.on('join', username => {
+  socket.on('join', () => {
     socket.username = username;
     socket.room = room;
     joinRoom(socket);

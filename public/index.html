@@ -22,12 +22,14 @@
         <input type="text" autofocus id="roomid" name="roomid" />
         <label for="username">Username </label>
         <input type="text" id="username" name="username" />
+        <input type="submit" id="submit" name="submit" />
       </div>
     </form>
     <script type="text/javascript">
       window.onload = () => {
         document.getElementById('form').onsubmit = () => {
           const roomId = document.getElementById('roomid').value.trim();
+          const username = document.getElementById('username').value.trim();
           if (roomId === null || roomId === '') {
             alert('roomId cannot be empty');
             return false;

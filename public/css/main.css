@@ -32,3 +32,12 @@ input[type='text'] {
   padding: 5px;
   width: 300px;
 }
+input[type='text']:focus {
+  border: 3px solid #cdffaf;
+}
+input[type='submit'] {
+  background-color: #282e24;
+  color: #cdffaf;
+  border: none;
+  padding: 10px 16px;
+}

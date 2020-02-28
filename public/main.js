@@ -7,13 +7,14 @@ let inboundStream = null;
 let initiator = false;
 
 $(document).ready(() => {
-  $('#userPrompt').submit(e => {
-    e.preventDefault();
-    const username = $('#username').val();
-    socket.emit('join', username);
-    $('#prompt').hide();
-    $('#screenshare').show();
-  });
+  socket.emit('join');
+  // $('#userPrompt').submit(e => {
+  //   e.preventDefault();
+  //   const username = $('#username').val();
+  //   socket.emit('join', username);
+  //   $('#prompt').hide();
+  //   $('#screenshare').show();
+  // });
 });
 
 // FUNCTION
