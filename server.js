@@ -40,7 +40,8 @@ function joinRoom(socket) {
     rooms[socket.room].push(socket.id);
     const host = rooms[socket.room][0];
     socket.host = host;
-    socket.emit('initiate', { host, id: socket.id });
+    console.log(`${socket.host} is host and ${socket.id} is viewer`);
+    socket.emit('initiate', { host: socket.host, id: socket.id });
   } else {
     console.log('room created');
     rooms[socket.room] = [socket.id];
@@ -76,10 +77,12 @@ io.sockets.on('connection', socket => {
     }
   });
   socket.on('message', ({ description, candidate, to }) => {
+    console.log(`${socket.username} is sending ${description} and ${candidate} to ${to}`);
     if (candidate) {
-      socket.broadcast.emit('message', {
+      socket.to(to).emit('message', {
         description,
-        candidate
+        candidate,
+        id: socket.id
       });
     } else {
       socket.to(to).emit('message', { description, id: socket.id });

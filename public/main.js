@@ -34,15 +34,20 @@ async function startScreenShare(id) {
 // initialize a new user when they join a room
 socket.on('initiate', async ({ host, id }) => {
   connections[host] = new RTCPeerConnection(iceServers);
-  connections[host].oniceconnectionstatechange = () => {
-    console.log(`peer ice state ${connections[host].iceConnectionState}`);
+  const peer = connections[host];
+  peer.oniceconnectionstatechange = () => {
+    console.log(`peer ice state ${peer.iceConnectionState}`);
   };
-  connections[host].ontrack = e => {
+  peer.onicecandidate = e => {
+    socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
+  };
+
+  peer.ontrack = e => {
     if (initiator) return;
     const video = document.getElementById('screen');
     if (!inboundStream) {
       inboundStream = new MediaStream([e.track]);
-    } else connections[host].addTrack(e.track, inboundStream);
+    } else peer[host].addTrack(e.track, inboundStream);
     video.srcObject = inboundStream;
     e.track.onunmute = () => {
       video.play();
@@ -66,7 +71,6 @@ socket.on('newHostPeer', async id => {
 });
 
 socket.on('message', async ({ description, candidate, id }) => {
-  if (id === undefined) return;
   const peer = connections[id];
   if (description) {
     await peer.setRemoteDescription(description);
