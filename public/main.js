@@ -38,15 +38,6 @@ socket.on('initiate', async ({ host, id }) => {
   peer.oniceconnectionstatechange = () => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
-  peer.onicecandidate = e => {
-    console.log(e);
-    console.log(e.candidate);
-    socket.emit('message', {
-      description: peer.localDescription,
-      candidate: e.candidate,
-      to: host
-    });
-  };
 
   peer.ontrack = e => {
     if (initiator) return;
@@ -71,6 +62,9 @@ socket.on('newHostPeer', async id => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
   peer.onicecandidate = e => {
+    if (!e || !e.candidate) return;
+    console.log(e);
+    console.log(e.candidate);
     socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
   };
   await peer.setLocalDescription(await peer.createOffer());
@@ -89,8 +83,9 @@ socket.on('message', async ({ description, candidate, id }) => {
     } else console.log('unexpected description type');
   }
   if (candidate) {
-    console.log('ice candidate added');
+    console.log(candidate);
     await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    console.log('ice candidate added');
   }
 });
 socket.on('closeConnection', async id => {
