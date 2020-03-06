@@ -39,6 +39,8 @@ socket.on('initiate', async ({ host, id }) => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
   peer.onicecandidate = e => {
+    console.log(e);
+    console.log(e.candidate);
     socket.emit('message', {
       description: peer.localDescription,
       candidate: e.candidate,
@@ -77,16 +79,18 @@ socket.on('newHostPeer', async id => {
 socket.on('message', async ({ description, candidate, id }) => {
   const peer = connections[id];
   if (description) {
-    await peer.setRemoteDescription(description);
     if (description.type === 'offer') {
+      await peer.setRemoteDescription(description);
       await peer.setLocalDescription(await peer.createAnswer());
       socket.emit('message', { description: peer.localDescription, to: id });
-    } else if (description.type === 'answer') console.log('answer recieved');
-    else console.log('unexpected description type');
+    } else if (description.type === 'answer') {
+      await peer.setRemoteDescription(description);
+      console.log('answer recieved');
+    } else console.log('unexpected description type');
   }
   if (candidate) {
     console.log('ice candidate added');
-    await peer.addIceCandidate(candidate);
+    await peer.addIceCandidate(new RTCIceCandidate(candidate));
   }
 });
 socket.on('closeConnection', async id => {
