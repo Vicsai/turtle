@@ -39,7 +39,11 @@ socket.on('initiate', async ({ host, id }) => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
   peer.onicecandidate = e => {
-    socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
+    socket.emit('message', {
+      description: peer.localDescription,
+      candidate: e.candidate,
+      to: host
+    });
   };
 
   peer.ontrack = e => {
