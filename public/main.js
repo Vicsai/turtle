@@ -50,6 +50,10 @@ socket.on('initiate', async ({ host, id }) => {
       video.play();
     };
   };
+  peer.onnegotiationneeded = async e => {
+    await peer.setLocalDescriptionawait(peer.createOffer());
+    socket.emit('message', { description: localDescription, to: id });
+  };
   socket.emit('newUserReady', id);
 });
 // create a new peer connection for host when a user joins the room
@@ -67,7 +71,12 @@ socket.on('newHostPeer', async id => {
     console.log(e.candidate);
     socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
   };
+  peer.onnegotiationneeded = async e => {
+    await peer.setLocalDescription(await peer.createOffer());
+    socket.emit('message', { description: peer.localDescription, to: id });
+  };
   await peer.setLocalDescription(await peer.createOffer());
+  socket.emit('message', { description: peer.localDescription, to: id });
 });
 
 socket.on('message', async ({ description, candidate, id }) => {
