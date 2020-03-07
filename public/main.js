@@ -57,12 +57,7 @@ socket.on('initiate', async ({ initiator, host }) => {
   };
   if (initiator === true) {
     await startScreenShare();
-    await peer.setLocalDescription(await peer.createOffer());
-    // socket.emit('message', { description: peer.localDescription });
   } else {
-    await peer.setLocalDescription(await peer.createOffer());
-    console.log(host);
-    socket.emit('message', { description: peer.localDescription, to: host });
     socket.emit('viewerReady', { viewerID: socket.id });
   }
 });
