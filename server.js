@@ -40,11 +40,10 @@ function joinRoom(socket) {
     rooms[socket.room].push(socket.id);
     const host = rooms[socket.room][0];
     socket.host = host;
-    socket.emit('initiate', { initiator: false, host });
+    socket.emit('initiate', { initiator: false, socketID: host });
   } else {
     console.log('room created');
     rooms[socket.room] = [socket.id];
-    socket.emit('initiate', { initiator: true });
   }
   console.log(`${socket.username} has joined`);
 }
@@ -79,15 +78,14 @@ io.sockets.on('connection', socket => {
   socket.on('message', ({ description, candidate, to }) => {
     if (candidate) {
       socket.broadcast.emit('message', {
-        description,
         candidate
       });
     } else {
       socket.to(to).emit('message', { description, id: socket.id });
     }
   });
-  socket.on('viewerReady', ({ viewerID }) => {
-    socket.to(socket.host).emit('newViewer', { viewerID });
+  socket.on('initiateHost', ({ viewerID }) => {
+    socket.to(socket.host).emit('initiate', { initiator: true, socketID: viewerID });
   });
 });
 process.on('SIGTERM', () => {

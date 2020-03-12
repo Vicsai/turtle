@@ -3,7 +3,7 @@ const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
 const socket = io.connect();
 let peer;
 
-// const connections = {};
+const connections = {};
 let inboundStream = null;
 
 $(document).ready(() => {
@@ -33,8 +33,10 @@ async function startScreenShare() {
 
 // SOCKET
 
-socket.on('initiate', async ({ initiator, host }) => {
+socket.on('initiate', async ({ initiator, socketID }) => {
+  console.log(socketID);
   peer = new RTCPeerConnection(iceServers);
+  connections[socketID] = peer;
   peer.oniceconnectionstatechange = () => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
@@ -57,13 +59,12 @@ socket.on('initiate', async ({ initiator, host }) => {
   };
   if (initiator === true) {
     await startScreenShare();
+    await peer.setLocalDescription(await peer.createOffer());
+    socket.emit('message', { description: peer.localDescription, to: socketID });
   } else {
-    socket.emit('viewerReady', { viewerID: socket.id });
+    console.log('finished viewer');
+    socket.emit('initiateHost', { viewerID: socket.id });
   }
-});
-socket.on('newViewer', async ({ viewerID }) => {
-  await peer.setLocalDescription(await peer.createOffer());
-  socket.emit('message', { description: peer.localDescription, to: viewerID });
 });
 socket.on('message', async ({ description, candidate, id }) => {
   if (description) {
@@ -79,7 +80,6 @@ socket.on('message', async ({ description, candidate, id }) => {
     } else console.log('unexpected description type');
   }
   if (candidate) {
-    console.log(candidate);
     await peer.addIceCandidate(new RTCIceCandidate(candidate));
     console.log('ice candidate added');
   }
