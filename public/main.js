@@ -8,13 +8,6 @@ let inboundStream = null;
 
 $(document).ready(() => {
   socket.emit('join');
-  // $('#userPrompt').submit(e => {
-  //   e.preventDefault();
-  //   const username = $('#username').val();
-  //   socket.emit('join', username);
-  //   $('#prompt').hide();
-  //   $('#screenshare').show();
-  // });
 });
 
 // FUNCTION
@@ -23,7 +16,6 @@ async function startScreenShare() {
   const tracks = stream.getTracks();
   for (let i = 0; i < tracks.length; i++) {
     peer.addTrack(tracks[i], stream);
-    // connections[id].addTrack(tracks[i], stream);
   }
   console.log('finished adding tracks');
   const video = document.getElementById('screen');
@@ -34,7 +26,6 @@ async function startScreenShare() {
 // SOCKET
 
 socket.on('initiate', async ({ initiator, socketID }) => {
-  console.log(socketID);
   peer = new RTCPeerConnection(iceServers);
   connections[socketID] = peer;
   peer.oniceconnectionstatechange = () => {
@@ -42,8 +33,7 @@ socket.on('initiate', async ({ initiator, socketID }) => {
   };
   peer.onicecandidate = e => {
     if (!e || !e.candidate) return;
-    console.log(e);
-    console.log(e.candidate);
+    console.log('found a candidate');
     socket.emit('message', { candidate: e.candidate });
   };
   peer.ontrack = e => {
@@ -84,59 +74,9 @@ socket.on('message', async ({ description, candidate, id }) => {
     console.log('ice candidate added');
   }
 });
-// socket.on('closeConnection', async id => {
-//   if (connections[id]) {
-//     connections[id].close();
-//     console.log('connection closed');
-//   } else console.log('invalid connection close');
-// });
-
-// initialize a new user when they join a room
-// socket.on('initiate', async ({ host, id }) => {
-//   connections[host] = new RTCPeerConnection(iceServers);
-//   const peer = connections[host];
-//   peer.oniceconnectionstatechange = () => {
-//     console.log(`peer ice state ${peer.iceConnectionState}`);
-//   };
-
-//   peer.ontrack = e => {
-//     if (initiator) return;
-//     const video = document.getElementById('screen');
-//     if (!inboundStream) {
-//       inboundStream = new MediaStream([e.track]);
-//     } else peer.addTrack(e.track, inboundStream);
-//     video.srcObject = inboundStream;
-//     e.track.onunmute = () => {
-//       video.play();
-//     };
-//   };
-//   peer.onnegotiationneeded = async e => {
-//     await peer.setLocalDescriptionawait(peer.createOffer());
-//     socket.emit('message', { description: peer.localDescription, to: id });
-//   };
-//   socket.emit('newUserReady', id);
-// });
-// create a new peer connection for host when a user joins the room
-// socket.on('newHostPeer', async id => {
-//   const peer = new RTCPeerConnection(iceServers);
-//   connections[id] = peer;
-//   console.log(connections);
-//   console.log(id);
-//   await startScreenShare(id);
-//   initiator = true;
-//   peer.oniceconnectionstatechange = () => {
-//     console.log(`peer ice state ${peer.iceConnectionState}`);
-//   };
-//   peer.onicecandidate = e => {
-//     if (!e || !e.candidate) return;
-//     console.log(e);
-//     console.log(e.candidate);
-//     socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
-//   };
-//   peer.onnegotiationneeded = async e => {
-//     await peer.setLocalDescription(await peer.createOffer());
-//     socket.emit('message', { description: peer.localDescription, to: id });
-//   };
-//   await peer.setLocalDescription(await peer.createOffer());
-//   socket.emit('message', { description: peer.localDescription, to: id });
-// });
+socket.on('closeConnection', async id => {
+  if (connections[id]) {
+    connections[id].close();
+    console.log('connection closed');
+  } else console.log('invalid connection close');
+});
