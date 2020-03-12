@@ -1,4 +1,4 @@
-const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stunserver.org' }];
 // const peer = new RTCPeerConnection(iceServers);
 const socket = io.connect();
 let peer;
