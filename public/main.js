@@ -1,28 +1,21 @@
-const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stunserver.org' }];
 // const peer = new RTCPeerConnection(iceServers);
 const socket = io.connect();
+let peer;
 
 const connections = {};
 let inboundStream = null;
-let initiator = false;
 
 $(document).ready(() => {
   socket.emit('join');
-  // $('#userPrompt').submit(e => {
-  //   e.preventDefault();
-  //   const username = $('#username').val();
-  //   socket.emit('join', username);
-  //   $('#prompt').hide();
-  //   $('#screenshare').show();
-  // });
 });
 
 // FUNCTION
-async function startScreenShare(id) {
+async function startScreenShare() {
   const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
   const tracks = stream.getTracks();
   for (let i = 0; i < tracks.length; i++) {
-    connections[id].addTrack(tracks[i], stream);
+    peer.addTrack(tracks[i], stream);
   }
   console.log('finished adding tracks');
   const video = document.getElementById('screen');
@@ -31,60 +24,45 @@ async function startScreenShare(id) {
 }
 
 // SOCKET
-// initialize a new user when they join a room
-socket.on('initiate', async ({ host, id }) => {
-  connections[host] = new RTCPeerConnection(iceServers);
-  const peer = connections[host];
-  peer.oniceconnectionstatechange = () => {
-    console.log(`peer ice state ${peer.iceConnectionState}`);
-  };
 
-  peer.ontrack = e => {
-    if (initiator) return;
-    const video = document.getElementById('screen');
-    if (!inboundStream) {
-      inboundStream = new MediaStream([e.track]);
-    } else peer[host].addTrack(e.track, inboundStream);
-    video.srcObject = inboundStream;
-    e.track.onunmute = () => {
-      video.play();
-    };
-  };
-  peer.onnegotiationneeded = async e => {
-    await peer.setLocalDescriptionawait(peer.createOffer());
-    socket.emit('message', { description: localDescription, to: id });
-  };
-  socket.emit('newUserReady', id);
-});
-// create a new peer connection for host when a user joins the room
-socket.on('newHostPeer', async id => {
-  const peer = new RTCPeerConnection(iceServers);
-  connections[id] = peer;
-  await startScreenShare(id);
-  initiator = true;
+socket.on('initiate', async ({ initiator, socketID }) => {
+  peer = new RTCPeerConnection(iceServers);
+  connections[socketID] = peer;
   peer.oniceconnectionstatechange = () => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
   peer.onicecandidate = e => {
     if (!e || !e.candidate) return;
-    console.log(e);
-    console.log(e.candidate);
-    socket.emit('message', { description: peer.localDescription, candidate: e.candidate, to: id });
+    console.log('found a candidate');
+    socket.emit('message', { candidate: e.candidate });
   };
-  peer.onnegotiationneeded = async e => {
+  peer.ontrack = e => {
+    if (initiator) return;
+    const video = document.getElementById('screen');
+    if (!inboundStream) {
+      inboundStream = new MediaStream([e.track]);
+    } else peer.addTrack(e.track, inboundStream);
+    video.srcObject = inboundStream;
+    e.track.onunmute = () => {
+      video.play();
+    };
+  };
+  if (initiator === true) {
+    await startScreenShare();
     await peer.setLocalDescription(await peer.createOffer());
-    socket.emit('message', { description: peer.localDescription, to: id });
-  };
-  await peer.setLocalDescription(await peer.createOffer());
-  socket.emit('message', { description: peer.localDescription, to: id });
+    socket.emit('message', { description: peer.localDescription, to: socketID });
+  } else {
+    console.log('finished viewer');
+    socket.emit('initiateHost', { viewerID: socket.id });
+  }
 });
-
 socket.on('message', async ({ description, candidate, id }) => {
-  const peer = connections[id];
   if (description) {
     if (description.type === 'offer') {
+      console.log('recieved offer');
       await peer.setRemoteDescription(description);
       await peer.setLocalDescription(await peer.createAnswer());
+      console.log('creating answer');
       socket.emit('message', { description: peer.localDescription, to: id });
     } else if (description.type === 'answer') {
       await peer.setRemoteDescription(description);
@@ -92,7 +70,6 @@ socket.on('message', async ({ description, candidate, id }) => {
     } else console.log('unexpected description type');
   }
   if (candidate) {
-    console.log(candidate);
     await peer.addIceCandidate(new RTCIceCandidate(candidate));
     console.log('ice candidate added');
   }
