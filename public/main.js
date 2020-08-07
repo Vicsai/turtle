@@ -57,7 +57,8 @@ socket.on('initiate', async ({ initiator, socketID }) => {
   }
 });
 socket.on('message', async ({ description, candidate, id }) => {
-  if (description) {
+  if (description !== undefined) {
+    console.log(description);
     if (description.type === 'offer') {
       console.log('recieved offer');
       await peer.setRemoteDescription(description);
@@ -69,7 +70,8 @@ socket.on('message', async ({ description, candidate, id }) => {
       console.log('answer recieved');
     } else console.log('unexpected description type');
   }
-  if (candidate) {
+  if (candidate !== undefined) {
+    console.log(candidate);
     await peer.addIceCandidate(new RTCIceCandidate(candidate));
     console.log('ice candidate added');
   }
