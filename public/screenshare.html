@@ -10,7 +10,7 @@
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/screenshare.css" />
     <!--scripts-->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"
@@ -27,6 +27,18 @@
   <body>
     <div id="screenshare">
       <video id="screen" width="1280" height="720" controls></video>
+    </div>
+    <div id="chatbox">
+      hello
+      <div id="chatform">
+        <input
+          type="text"
+          id="usermsg"
+          placeholder="Type here..."
+          autofocus
+          onkeypress="return send(event)"
+        />
+      </div>
     </div>
   </body>
 </html>
