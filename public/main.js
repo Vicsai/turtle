@@ -6,17 +6,16 @@ let username;
 
 const connections = {};
 let inboundStream;
-let chatbox;
 
 $(document).ready(() => {
   socket.emit('join');
-  chatbox = document.getElementById('chatbox');
 });
 
 // FUNCTION
 async function startScreenShare() {
   const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
   const tracks = stream.getTracks();
+  console.log(tracks);
   for (let i = 0; i < tracks.length; i++) {
     peer.addTrack(tracks[i], stream);
   }
@@ -33,7 +32,6 @@ async function showMessage(message) {
 }
 async function sendChatMessage() {
   let message = document.getElementById('usermsg').value.trim();
-  console.log(message);
   showMessage(message);
   socket.emit('message', { message });
 }
@@ -52,6 +50,10 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
   connections[socketID] = peer;
   peer.oniceconnectionstatechange = () => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
+  };
+  peer.onnegotiationneeded = async () => {
+    await peer.setLocalDescription(await peer.createOffer());
+    socket.emit('message', { description: peer.localDescription });
   };
   peer.onicecandidate = e => {
     if (!e || !e.candidate) return;
@@ -72,11 +74,12 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
   if (initiator === true) {
     await startScreenShare();
     await peer.setLocalDescription(await peer.createOffer());
-    socket.emit('message', { description: peer.localDescription, to: socketID });
-  } else {
-    console.log('finished viewer');
-    socket.emit('initiateHost', { viewerID: socket.id });
+    socket.emit('message', { description: peer.localDescription });
   }
+  // else {
+  //   console.log('finished viewer');
+  //   // socket.emit('initiateHost', { viewerID: socket.id });
+  // }
 });
 socket.on('message', async ({ description, candidate, id }) => {
   if (description !== undefined) {
@@ -86,7 +89,7 @@ socket.on('message', async ({ description, candidate, id }) => {
       await peer.setRemoteDescription(description);
       await peer.setLocalDescription(await peer.createAnswer());
       console.log('creating answer');
-      socket.emit('message', { description: peer.localDescription, to: id });
+      socket.emit('message', { description: peer.localDescription });
     } else if (description.type === 'answer') {
       await peer.setRemoteDescription(description);
       console.log('answer recieved');
@@ -98,10 +101,10 @@ socket.on('message', async ({ description, candidate, id }) => {
     console.log('ice candidate added');
   }
 });
-socket.on('newChatMessage', async ({ username, message }) => {
+socket.on('newChatMessage', async ({ user, message }) => {
   console.log(`chat being called, message is ${message}`);
   const node = document.createElement('LI');
-  const textnode = document.createTextNode(`${username}: ${message}`);
+  const textnode = document.createTextNode(`${user}: ${message}`);
   node.appendChild(textnode);
   document.getElementById('chatbox').appendChild(node);
 });

@@ -31,10 +31,19 @@ function joinRoom(socket) {
     rooms[socket.room].push(socket.id);
     const host = rooms[socket.room][0];
     socket.host = host;
-    socket.emit('initiate', { initiator: false, socketID: host, socketUsername: socket.username });
+    socket.emit('initiate', {
+      initiator: false,
+      socketID: socket.id,
+      socketUsername: socket.username
+    });
   } else {
     console.log('room created');
     rooms[socket.room] = [socket.id];
+    socket.emit('initiate', {
+      initiator: true,
+      socketID: socket.id,
+      socketUsername: socket.username
+    });
   }
   console.log(`${socket.username} has joined`);
 }
@@ -72,17 +81,16 @@ io.sockets.on('connection', socket => {
         candidate
       });
     } else if (description !== undefined) {
-      socket.to(to).emit('message', { description, id: socket.id });
+      socket.broadcast.emit('message', { description });
     } else if (message !== undefined) {
-      console.log(`${socket.username}: ${message}`);
       socket.broadcast.emit('newChatMessage', { username: socket.username, message });
     } else console.log('message fail');
   });
-  socket.on('initiateHost', ({ viewerID }) => {
-    socket
-      .to(socket.host)
-      .emit('initiate', { initiator: true, socketID: viewerID, socketUsername: socket.username });
-  });
+  // socket.on('initiateHost', ({ viewerID }) => {
+  //   socket
+  //     .to(socket.host)
+  //     .emit('initiate', { initiator: true, socketID: viewerID, socketUsername: socket.username });
+  // });
 });
 process.on('SIGTERM', () => {
   console.log('shutting down server');
