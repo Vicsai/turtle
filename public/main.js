@@ -31,7 +31,7 @@ async function showMessage(message) {
   document.getElementById('chatbox').appendChild(node);
 }
 async function sendChatMessage() {
-  let message = document.getElementById('usermsg').value.trim();
+  const message = document.getElementById('usermsg').value.trim();
   showMessage(message);
   socket.emit('message', { message });
 }
