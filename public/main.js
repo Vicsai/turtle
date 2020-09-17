@@ -13,7 +13,7 @@ $(document).ready(() => {
 
 // FUNCTION
 async function startScreenShare() {
-  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
   const tracks = stream.getTracks();
   console.log(tracks);
   for (let i = 0; i < tracks.length; i++) {
@@ -31,9 +31,12 @@ async function showMessage(message) {
   document.getElementById('chatbox').appendChild(node);
 }
 async function sendChatMessage() {
-  const message = document.getElementById('usermsg').value.trim();
-  showMessage(message);
-  socket.emit('message', { message });
+  const message = document.getElementById('usermsg');
+  if (message.value.trim() !== '') {
+    showMessage(message.value.trim());
+    message.value = '';
+    socket.emit('message', { message });
+  }
 }
 
 function send(e) {
@@ -76,12 +79,8 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
     await peer.setLocalDescription(await peer.createOffer());
     socket.emit('message', { description: peer.localDescription });
   }
-  // else {
-  //   console.log('finished viewer');
-  //   // socket.emit('initiateHost', { viewerID: socket.id });
-  // }
 });
-socket.on('message', async ({ description, candidate, id }) => {
+socket.on('message', async ({ description, candidate }) => {
   if (description !== undefined) {
     console.log(description);
     if (description.type === 'offer') {

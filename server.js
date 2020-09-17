@@ -75,7 +75,7 @@ io.sockets.on('connection', socket => {
       }
     }
   });
-  socket.on('message', ({ description, candidate, message, to }) => {
+  socket.on('message', ({ description, candidate, message }) => {
     if (candidate !== undefined) {
       socket.broadcast.emit('message', {
         candidate
@@ -86,11 +86,6 @@ io.sockets.on('connection', socket => {
       socket.broadcast.emit('newChatMessage', { username: socket.username, message });
     } else console.log('message fail');
   });
-  // socket.on('initiateHost', ({ viewerID }) => {
-  //   socket
-  //     .to(socket.host)
-  //     .emit('initiate', { initiator: true, socketID: viewerID, socketUsername: socket.username });
-  // });
 });
 process.on('SIGTERM', () => {
   console.log('shutting down server');

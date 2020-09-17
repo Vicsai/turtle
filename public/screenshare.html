@@ -26,18 +26,15 @@
   </head>
   <body>
     <div id="screenshare">
-      <video id="screen" width="1280" height="720" controls></video>
+      <video id="screen" width="80%" controls></video>
     </div>
     <div id="chatbox">
-      hello
       <div id="chatform">
-        <input
-          type="text"
+        <textarea
           id="usermsg"
-          placeholder="Type here..."
-          autofocus
+          placeholder="send message"
           onkeypress="return send(event)"
-        />
+        ></textarea>
       </div>
     </div>
   </body>
