@@ -6,6 +6,7 @@ const iceServers = [
 const socket = io.connect();
 let peer;
 let username;
+let isNegotiating = false;
 
 const connections = {};
 let inboundStream;
@@ -66,8 +67,16 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
   peer.onnegotiationneeded = async () => {
+    if (isNegotiating) {
+      console.log('skip nested negotiations');
+      return;
+    }
+    isNegotiating = true;
     await peer.setLocalDescription(await peer.createOffer());
     socket.emit('message', { description: peer.localDescription });
+  };
+  peer.onsignalingstatechange = () => {
+    isNegotiating = peer.signalingState !== 'stable';
   };
   peer.onicecandidate = e => {
     if (!e || !e.candidate) return;
