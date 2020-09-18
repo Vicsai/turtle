@@ -26,8 +26,11 @@
   </head>
   <body>
     <div id="screenshare">
-      <video id="screen" width="80%" controls></video>
+      <video id="screen" width="80%" autoplay controls></video>
+      <br />
+      <button id="startButton" onclick="start()" disabled>Start Screenshare</button>
     </div>
+    <div></div>
     <div id="chatbox">
       <div id="chatform">
         <textarea

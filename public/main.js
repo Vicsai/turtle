@@ -1,5 +1,8 @@
-const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stunserver.org' }];
-// const peer = new RTCPeerConnection(iceServers);
+const iceServers = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun.services.mozilla.com:3478' },
+  { urls: 'stun:stunserver.org' }
+];
 const socket = io.connect();
 let peer;
 let username;
@@ -12,10 +15,10 @@ $(document).ready(() => {
 });
 
 // FUNCTION
-async function startScreenShare() {
+async function startScreenshare() {
+  document.getElementById('startButton').disabled = false;
   const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
   const tracks = stream.getTracks();
-  console.log(tracks);
   for (let i = 0; i < tracks.length; i++) {
     peer.addTrack(tracks[i], stream);
   }
@@ -24,17 +27,23 @@ async function startScreenShare() {
   video.srcObject = stream;
   video.play();
 }
+async function start() {
+  await startScreenshare();
+  await peer.setLocalDescription(await peer.createOffer());
+  socket.emit('message', { description: peer.localDescription });
+}
 async function showMessage(message) {
-  const node = document.createElement('LI');
-  const textnode = document.createTextNode(`${username}: ${message}`);
-  node.appendChild(textnode);
-  document.getElementById('chatbox').appendChild(node);
+  const div = document.createElement('div');
+  div.classList.add('chatLog');
+  const text = `${username}: ${message}`;
+  div.innerText = text;
+  document.getElementById('chatbox').appendChild(div);
 }
 async function sendChatMessage() {
-  const message = document.getElementById('usermsg');
-  if (message.value.trim() !== '') {
-    showMessage(message.value.trim());
-    message.value = '';
+  const message = document.getElementById('usermsg').value;
+  if (message.trim() !== '') {
+    showMessage(message.trim());
+    document.getElementById('usermsg').value = '';
     socket.emit('message', { message });
   }
 }
@@ -51,6 +60,8 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
   peer = new RTCPeerConnection(iceServers);
   username = socketUsername;
   connections[socketID] = peer;
+  await peer.setLocalDescription(await peer.createOffer());
+
   peer.oniceconnectionstatechange = () => {
     console.log(`peer ice state ${peer.iceConnectionState}`);
   };
@@ -66,23 +77,24 @@ socket.on('initiate', async ({ initiator, socketID, socketUsername }) => {
   peer.ontrack = e => {
     if (initiator) return;
     const video = document.getElementById('screen');
-    if (!inboundStream) {
-      inboundStream = new MediaStream([e.track]);
-    } else peer.addTrack(e.track, inboundStream);
-    video.srcObject = inboundStream;
-    e.track.onunmute = () => {
-      video.play();
-    };
+    if (e.streams && e.streams[0]) {
+      video.srcObject = e.streams[0];
+    } else {
+      if (!inboundStream) {
+        inboundStream = new MediaStream([e.track]);
+      } else peer.addTrack(e.track, inboundStream);
+      video.srcObject = inboundStream;
+      e.track.onunmute = () => {
+        video.play();
+      };
+    }
   };
   if (initiator === true) {
-    await startScreenShare();
-    await peer.setLocalDescription(await peer.createOffer());
-    socket.emit('message', { description: peer.localDescription });
+    document.getElementById('startButton').disabled = false;
   }
 });
 socket.on('message', async ({ description, candidate }) => {
   if (description !== undefined) {
-    console.log(description);
     if (description.type === 'offer') {
       console.log('recieved offer');
       await peer.setRemoteDescription(description);
@@ -101,15 +113,18 @@ socket.on('message', async ({ description, candidate }) => {
   }
 });
 socket.on('newChatMessage', async ({ user, message }) => {
-  console.log(`chat being called, message is ${message}`);
-  const node = document.createElement('LI');
-  const textnode = document.createTextNode(`${user}: ${message}`);
-  node.appendChild(textnode);
-  document.getElementById('chatbox').appendChild(node);
+  const div = document.createElement('div');
+  div.classList.add('chatLog');
+  const text = `${user}: ${message}`;
+  div.innerText = text;
+  document.getElementById('chatbox').appendChild(div);
 });
 socket.on('closeConnection', async id => {
   if (connections[id]) {
     connections[id].close();
     console.log('connection closed');
   } else console.log('invalid connection close');
+});
+socket.on('sendOffer', async () => {
+  socket.emit('message', { description: peer.localDescription });
 });

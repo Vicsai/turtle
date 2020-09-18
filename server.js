@@ -36,6 +36,7 @@ function joinRoom(socket) {
       socketID: socket.id,
       socketUsername: socket.username
     });
+    socket.to(socket.host).emit('sendOffer');
   } else {
     console.log('room created');
     rooms[socket.room] = [socket.id];
@@ -60,6 +61,7 @@ io.sockets.on('connection', socket => {
   socket.on('join', () => {
     socket.username = username;
     socket.room = room;
+    socket.join(room);
     joinRoom(socket);
   });
   socket.on('disconnect', () => {
@@ -77,13 +79,13 @@ io.sockets.on('connection', socket => {
   });
   socket.on('message', ({ description, candidate, message }) => {
     if (candidate !== undefined) {
-      socket.broadcast.emit('message', {
+      socket.to(socket.room).emit('message', {
         candidate
       });
     } else if (description !== undefined) {
-      socket.broadcast.emit('message', { description });
+      socket.to(socket.room).emit('message', { description });
     } else if (message !== undefined) {
-      socket.broadcast.emit('newChatMessage', { username: socket.username, message });
+      socket.to(socket.room).emit('newChatMessage', { user: socket.username, message });
     } else console.log('message fail');
   });
 });
